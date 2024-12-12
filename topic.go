@@ -2,28 +2,14 @@ package tgsupergroup
 
 import (
 	"context"
+	"github.com/https-whoyan/tgsupergroup/types"
 	"strconv"
 )
-
-const superGroupType = "supergroup"
-
-type TopicThreadID = uint
-type TopicName = string
-
-const EmptyTopicID TopicThreadID = 0
-
-type Topic struct {
-	ChatID   int64         `json:"chatID"`
-	ThreadID TopicThreadID `json:"threadID"`
-	Name     TopicName     `json:"name"`
-}
-
-type Topics map[TopicName]*Topic
 
 func idFromBytes(bytes []byte) (TopicThreadID, error) {
 	threadID, err := strconv.ParseUint(string(bytes), 10, 64)
 	if err != nil {
-		return EmptyTopicID, err
+		return EmptyThreadID, err
 	}
 	return TopicThreadID(threadID), nil
 }
@@ -36,28 +22,10 @@ func NewTopic(chatID ChatID, topicName TopicName, id TopicThreadID) *Topic {
 	}
 }
 
-func (t *Topics) Safe(topic *Topic) {
-	(*t)[topic.Name] = topic
-}
-
-func (t *Topics) GetID(name TopicName) TopicThreadID {
-	if t == nil {
-		return EmptyTopicID
-	}
-	topic, ok := (*t)[name]
-	if !ok {
-		return EmptyTopicID
-	}
-	if topic == nil {
-		return EmptyTopicID
-	}
-	return topic.ThreadID
-}
-
 func (b *Bot) safeTopicToLocalCacheIfNeed(topic *Topic) {
 	if b.topicsCache[topic.ChatID] != nil {
 		id := b.topicsCache[topic.ChatID].GetID(topic.Name)
-		if id == EmptyTopicID {
+		if id == EmptyThreadID {
 			b.topicsCache[topic.ChatID].Safe(topic)
 		}
 		return
@@ -76,7 +44,7 @@ func (b *Bot) getTopic(
 			return b.getTopicByStorageOrSpam(ctx, chatID, topicName)
 		}
 		topicID = topics.GetID(topicName)
-		if topicID == EmptyTopicID {
+		if topicID == types.EmptyTopicID {
 			return b.getTopicByStorageOrSpam(ctx, chatID, topicName)
 		}
 		return topicID, true, nil
@@ -87,22 +55,23 @@ func (b *Bot) getTopic(
 func (b *Bot) getTopicByStorageOrSpam(
 	ctx context.Context, chatID ChatID, topicName TopicName,
 ) (topicID TopicThreadID, found bool, err error) {
-	if b.cacher != nil {
-		topic, err := b.cacher.GetByName(ctx, chatID, topicName)
-		if err != nil {
-			return EmptyTopicID, false, err
-		}
-		if topic != nil {
-			topicID = topic.ThreadID
-			return topicID, true, b.cacher.Save(ctx, topic)
-		}
+	if b.storage == nil {
+		return b.findBySpam(ctx, chatID, topicName)
+	}
+	topic, err := b.storage.GetByName(ctx, chatID, topicName)
+	if err != nil {
+		return EmptyThreadID, false, err
+	}
+	if topic != nil {
+		topicID = topic.ThreadID
+		return topicID, true, b.storage.Save(ctx, topic)
 	}
 	topicID, found, err = b.findBySpam(ctx, chatID, topicName)
 	if err != nil {
 		return
 	}
 	if found {
-		err = b.cacher.Save(ctx, NewTopic(chatID, topicName, EmptyTopicID))
+		err = b.storage.Save(ctx, NewTopic(chatID, topicName, EmptyThreadID))
 	}
 	return
 }
@@ -110,17 +79,17 @@ func (b *Bot) getTopicByStorageOrSpam(
 func (b *Bot) findBySpam(
 	ctx context.Context, chatID ChatID, topicName TopicName,
 ) (topicID TopicThreadID, contains bool, err error) {
-	for i := 0; i <= int(b.spamCount); i++ {
-		ok, checkTopicErr := b.requester.checkTopic(
+	for i := 1; i <= int(b.spamCount); i++ {
+		ok, checkTopicErr := b.requester.CheckTopic(
 			ctx, NewTopic(chatID, topicName, TopicThreadID(i)),
 		)
 		if checkTopicErr != nil {
-			return EmptyTopicID, false, checkTopicErr
+			return EmptyThreadID, false, checkTopicErr
 		}
 		if !ok {
 			continue
 		}
 		return TopicThreadID(i), true, nil
 	}
-	return EmptyTopicID, false, nil
+	return EmptyThreadID, false, nil
 }

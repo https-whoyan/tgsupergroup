@@ -2,62 +2,54 @@ package tgsupergroup
 
 import (
 	"context"
-	"errors"
-	"net/http"
+	"github.com/https-whoyan/tgsupergroup/errors"
 )
 
-const chatNotFoundDescription = "Bad Request: chat not found"
-
-type chat struct {
-	chatID   ChatID
-	chatType string
+// Preload Chat Topics using Storage
+func (b *Bot) PreloadChatTopics(ctx context.Context, chatIDs ...ChatID) error {
+	if b.storage == nil {
+		return nil
+	}
+	for _, id := range chatIDs {
+		var err error
+		chatCache, contains := b.chatCache[ChatID(id)]
+		if !contains {
+			chatByID, getChatErr := b.requester.GetChat(ctx, ChatID(id))
+			if getChatErr != nil {
+				return getChatErr
+			}
+			if chatByID.IsSuperGroup() {
+				return errors.ErrChatIsNotSuperGroup
+			}
+			b.chatCache[ChatID(id)] = chatByID
+		}
+		if chatCache == nil {
+			return errors.ErrChatNotFound
+		}
+		topicsCache, contains := b.topicsCache[ChatID(id)]
+		if topicsCache == nil || !contains {
+			topicsCache, err = b.storage.GetAll(ctx, id)
+			if err != nil {
+				return err
+			}
+			b.topicsCache[ChatID(id)] = topicsCache
+		}
+	}
+	return nil
 }
 
-func (b *Bot) findChat(ctx context.Context, chatID ChatID) (*chat, error) {
-	cachedChat, contains := b.chatCacher[chatID]
+func (b *Bot) findChat(ctx context.Context, chatID ChatID) (*Chat, error) {
+	cachedChat, contains := b.chatCache[chatID]
 	if contains {
 		if cachedChat == nil {
-			return nil, ErrChatNotFound
+			return nil, errors.ErrChatNotFound
 		}
 		return cachedChat, nil
 	}
-	cachedChat, err := b.requester.getChat(ctx, chatID)
+	cachedChat, err := b.requester.GetChat(ctx, chatID)
 	if err != nil {
 		return nil, err
 	}
-	b.chatCacher[chatID] = cachedChat
-	if cachedChat == nil {
-		return nil, ErrChatNotFound
-	}
+	b.chatCache[chatID] = cachedChat
 	return cachedChat, nil
-}
-
-func (r *requester) getChat(ctx context.Context, chatID ChatID) (*chat, error) {
-	req, err := r.newRequest(ctx, http.MethodPost, sendMessage, queryArgs{
-		chatIDJson:      toStr(chatID),
-		messageTextJson: "test",
-	})
-	if err != nil {
-		return nil, err
-	}
-	var resp sendMessageResponse
-	err = r.send(req, &resp)
-	if err != nil {
-		return nil, err
-	}
-	if !resp.Ok {
-		if *resp.Desc == chatNotFoundDescription {
-			return nil, nil
-		}
-		return nil, errors.New(*resp.Desc)
-	}
-	outChat := &chat{
-		chatID:   chatID,
-		chatType: resp.Result.ChatResponse.Type,
-	}
-	err = r.deleteMessage(ctx, chatID, resp.Result.MessageID)
-	if err != nil {
-		return outChat, err
-	}
-	return outChat, nil
 }

@@ -1,45 +1,54 @@
 package tgsupergroup
 
-import "context"
+import (
+	"context"
+	"github.com/https-whoyan/tgsupergroup/errors"
+)
 
+/*
+Use this method if you provided chatID in the options during initialization.
+
+Otherwise, use SendMessageToTopicByChatID method.
+*/
 func (b *Bot) SendMessageToTopic(ctx context.Context, topicName TopicName, messageText string) error {
 	if b.chat == nil {
-		return ErrNotProvidedChatID
+		return errors.ErrNotProvidedChatID
 	}
-	if b.chat.chatType != superGroupType {
-		return ErrChatIsNotSuperGroup
+	if !b.chat.IsSuperGroup() {
+		return errors.ErrChatIsNotSuperGroup
 	}
-	return b.SendMessageToTopicByChatID(ctx, b.chat.chatID, topicName, messageText)
+	return b.SendMessageToTopicByChatID(ctx, b.chat.ChatID, topicName, messageText)
 }
 
+// Sends a message to a group's topic by its name.
 func (b *Bot) SendMessageToTopicByChatID(
 	ctx context.Context, chatID ChatID, topicName TopicName, messageText string,
 ) error {
-	botChat, err := b.findChat(ctx, chatID)
+	currChat, err := b.findChat(ctx, chatID)
 	if err != nil {
 		return err
 	}
-	if botChat.chatType != superGroupType {
-		return ErrChatIsNotSuperGroup
+	if currChat.IsSuperGroup() {
+		return errors.ErrChatIsNotSuperGroup
 	}
 	topicID, isContains, err := b.getTopic(ctx, chatID, topicName)
 	if err != nil {
 		return err
 	}
-	var topic = NewTopic(chatID, topicName, EmptyTopicID)
+	var topic = NewTopic(chatID, topicName, EmptyThreadID)
 	defer func() { b.safeTopicToLocalCacheIfNeed(topic) }()
 	if isContains {
 		topic.ThreadID = topicID
-		err = b.requester.sendMessageToTopic(ctx, topic, messageText)
-		return err
+		return b.requester.SendMessageToTopic(ctx, chatID, topic.ThreadID, messageText)
 	}
-	topicID, err = b.requester.createTopic(ctx, topic)
-	if err != nil {
-		return err
+	topicIDPtr, createTopicErr := b.requester.CreateTopic(ctx, topic)
+	if createTopicErr != nil {
+		return createTopicErr
 	}
+	topicID = *topicIDPtr
 	topic.ThreadID = topicID
-	if b.cacher != nil {
-		err = b.cacher.Save(ctx, topic)
+	if b.storage != nil {
+		err = b.storage.Save(ctx, topic)
 		if err != nil {
 			return err
 		}
@@ -53,15 +62,15 @@ func (b *Bot) SendMessageToChat(ctx context.Context, chatID ChatID, messageText 
 		return err
 	}
 	if botChat == nil {
-		return ErrChatNotFound
+		return errors.ErrChatNotFound
 	}
-	err = b.requester.sendMessageToChat(ctx, chatID, messageText)
+	err = b.requester.SendMessageToChat(ctx, chatID, messageText)
 	return err
 }
 
 func (b *Bot) SendMessage(ctx context.Context, messageText string) error {
 	if b.chat == nil {
-		return ErrNotProvidedChatID
+		return errors.ErrNotProvidedChatID
 	}
-	return b.requester.sendMessageToChat(ctx, b.chat.chatID, messageText)
+	return b.requester.SendMessageToChat(ctx, b.chat.ChatID, messageText)
 }

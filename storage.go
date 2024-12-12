@@ -14,19 +14,22 @@ type Storage interface {
 }
 
 type redisCacher struct {
-	client redis.Client
+	client     redis.Client
+	fieldAsset string
 }
 
+// Initiates Storage using the redis.Client
 func NewRedisStorage(client redis.Client) Storage {
 	return &redisCacher{
-		client: client,
+		client:     client,
+		fieldAsset: RedisKeyAsset,
 	}
 }
 
-var RedisKeyAsset = "TGSGroups:%d" // ChatID
+const RedisKeyAsset = "TGSGroups:%d" // ChatID
 
 func (c redisCacher) getKey(chatID int64) string {
-	return fmt.Sprintf(RedisKeyAsset, chatID)
+	return fmt.Sprintf(c.fieldAsset, chatID)
 }
 
 func (c redisCacher) GetAll(ctx context.Context, chatID ChatID) (*Topics, error) {

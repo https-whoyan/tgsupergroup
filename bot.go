@@ -2,71 +2,97 @@ package tgsupergroup
 
 import (
 	"context"
+	"github.com/https-whoyan/tgsupergroup/internal/requester"
 	"io"
 	"net/http"
 )
 
+/*
+Main structure for operand topics.
+
+Main method : SendMessageToTopicByChatID
+
+The method calls the telegram API, which is responsible for sending a message to a specific topic, and for that it needs the ThreadID of the chat, not the chat name.
+To find a id, bot has 3 levels of get this id.
+
+The first one is local, the bot hashes chats and topics in the group.
+
+The second is Storage, which stores the group's tops in any database. The library already implements storage using Redis. Storage is configured with the WithStorage option. To get storage via Redis, use the NewRedisStorage function
+Otherwise, if nothing is found, the bot finds the right topic by enumerating the IDs. The maximum standard value is 100, but this is Option WithMaxSpamThreadIDs
+
+If the desired chat is not found, a new one is created. Make sure that the bot has enough permissions to create topics.
+*/
 type Bot struct {
 	io.Closer
 	ctx      context.Context
 	basicURL string
 	token    string
-	botName  string
-	chat     *chat
+	chat     *Chat
 
 	spamCount uint
 	parseMode ParseMode
 
 	httpCli *http.Client
 
-	requester   *requester
-	cacher      Storage
-	chatCacher  map[ChatID]*chat
+	requester   requester.Requester
+	storage     Storage
+	chatCache   map[ChatID]*Chat
 	topicsCache map[ChatID]*Topics
 }
 
 const maxSpamThreadIDs = 100
 
+// List:
+// WithHTTPClient, WithStorage, WithChatID, WithMaxSpamThreadIDs, WithContext, WithParseMode, WithBotName
 type Option func(*Bot)
 
+// Configure http.Client. Default: http.DefaultClient
 func WithHTTPClient(httpCli *http.Client) Option {
 	return func(bot *Bot) {
 		bot.httpCli = httpCli
 	}
 }
-func WithCacher(cacher Storage) Option {
+
+// Configure Storage to save TopicThreadID. Use NewRedisStorage if you're comfortable using redis.
+//
+// May be nil. (No Storage)
+func WithStorage(cacher Storage) Option {
 	return func(bot *Bot) {
-		bot.cacher = cacher
+		bot.storage = cacher
 	}
 }
-func WithChatID(chatID int64) Option {
+
+// Configure default chatID, if you need to operand only with this chat.
+func WithChatID(chatID ChatID) Option {
 	return func(bot *Bot) {
-		bot.chat = &chat{
-			chatID: chatID,
+		bot.chat = &Chat{
+			ChatID: chatID,
 		}
 	}
 }
+
+// Configure max attemps to find a need topic. Default: 100
 func WithMaxSpamThreadIDs(maxThreadIDs uint) Option {
 	return func(bot *Bot) {
 		bot.spamCount = maxThreadIDs
 	}
 }
+
+// Configure context.Context. Default: context.Background
 func WithContext(ctx context.Context) Option {
 	return func(bot *Bot) {
 		bot.ctx = ctx
 	}
 }
+
+// Configure ParseMode. Default: ParseModeMarkdownV2
 func WithParseMode(m ParseMode) Option {
 	return func(bot *Bot) {
 		bot.parseMode = m
 	}
 }
-func WithBotName(name string) Option {
-	return func(bot *Bot) {
-		bot.botName = name
-	}
-}
 
+// NewBot Returns an instance of the bot, look for Option's above
 func NewBot(token string, opts ...Option) (*Bot, error) {
 	b := &Bot{
 		ctx:         context.Background(),
@@ -74,38 +100,32 @@ func NewBot(token string, opts ...Option) (*Bot, error) {
 		httpCli:     http.DefaultClient,
 		spamCount:   maxSpamThreadIDs,
 		parseMode:   ParseModeMarkdownV2,
-		chatCacher:  make(map[ChatID]*chat),
+		chatCache:   make(map[ChatID]*Chat),
 		topicsCache: make(map[int64]*Topics),
 	}
 	for _, opt := range opts {
 		opt(b)
 	}
 	var err error
-	b.requester = newRequester(token, b.httpCli, b.parseMode, b.botName)
-	botName, pingErr := b.requester.getMe(b.ctx)
+	b.requester = requester.NewRequester(token, b.httpCli, b.parseMode)
+	_, pingErr := b.requester.GetMe(b.ctx)
 	if pingErr != nil {
 		return nil, pingErr
 	}
-	if len(b.botName) == 0 {
-		b.botName = botName
-	}
 	if b.chat != nil {
-		b.chat, err = b.requester.getChat(b.ctx, b.chat.chatID)
+		b.chat, err = b.requester.GetChat(b.ctx, b.chat.ChatID)
 		if err != nil {
 			return nil, err
 		}
-		if b.chat == nil {
-			return nil, ErrChatNotFound
-		}
-		b.chatCacher[b.chat.chatID] = b.chat
+		b.chatCache[b.chat.ChatID] = b.chat
 	}
-	if b.cacher != nil && b.chat != nil {
+	if b.storage != nil && b.chat != nil {
 		var allTopics *Topics
-		allTopics, err = b.cacher.GetAll(b.ctx, b.chat.chatID)
+		allTopics, err = b.storage.GetAll(b.ctx, b.chat.ChatID)
 		if err != nil {
 			return nil, err
 		}
-		b.topicsCache[b.chat.chatID] = allTopics
+		b.topicsCache[b.chat.ChatID] = allTopics
 	}
 	return b, nil
 }

@@ -1,10 +1,10 @@
-package tgsupergroup
+package requester
 
 import "time"
 
 const (
 	basicURL      = "https://api.telegram.org/bot"
-	pingEndpoint  = "/getMe"
+	getMeEndpoint = "/getMe"
 	sendMessage   = "/sendMessage"
 	createTopic   = "/createForumTopic"
 	deleteMessage = "/deleteMessage"
@@ -12,7 +12,7 @@ const (
 
 const (
 	chatIDJson      = "chat_id"
-	msgThreadIDJson = "msg_thread_id"
+	msgThreadIDJson = "message_thread_id"
 	messageIDJson   = "message_id"
 	chatNameJson    = "name"
 	messageTextJson = "text"
@@ -20,5 +20,5 @@ const (
 
 const (
 	maxRequestsBySecond = 30
-	requestTiming       = time.Second / (maxRequestsBySecond + 1)
+	requestTiming       = time.Second / (maxRequestsBySecond - 1)
 )

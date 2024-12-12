@@ -1,4 +1,4 @@
-package tgsupergroup
+package requester
 
 import (
 	"context"
@@ -7,67 +7,19 @@ import (
 	"net/http"
 	"net/url"
 	"strings"
-	"sync"
 	"time"
 )
 
 type queryArgs map[string]string
-type ChatID = int64
-type MessageID = int64
 
-type requester struct {
-	mu         sync.Mutex
-	basicURL   string
-	botToken   string
-	botName    string
-	parseMode  ParseMode
-	httpClient *http.Client
+type errResponse struct {
+	ErrCode *int    `json:"error_code"`
+	Desc    *string `json:"description"`
 }
 
-func newRequester(
-	botToken string,
-	httpCli *http.Client,
-	parseMode ParseMode,
-	botName string,
-) *requester {
-	if httpCli == nil {
-		httpCli = http.DefaultClient
-	}
-	return &requester{
-		basicURL:   basicURL,
-		botToken:   botToken,
-		httpClient: httpCli,
-		parseMode:  parseMode,
-		botName:    botName,
-	}
-}
-
-type getMeResponse struct {
-	basicResponse
-	Result *struct {
-		FirstName string `json:"first_name"`
-	} `json:"result"`
-}
-
-func (r *requester) getMe(ctx context.Context) (botName string, err error) {
-	req, err := r.newRequest(
-		ctx,
-		http.MethodGet,
-		pingEndpoint,
-		nil,
-	)
-	if err != nil {
-		return
-	}
-	var dst getMeResponse
-	err = r.send(req, &dst)
-	if err != nil {
-		return
-	}
-	if !dst.Ok {
-		return "", errors.New(*dst.Desc)
-	}
-	return dst.Result.FirstName, nil
+type basicResponse struct {
+	errResponse
+	Ok bool `json:"ok"`
 }
 
 func (r *requester) format(endpoints string) string {

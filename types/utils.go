@@ -1,4 +1,4 @@
-package tgsupergroup
+package types
 
 import (
 	"fmt"
@@ -6,9 +6,7 @@ import (
 	"time"
 )
 
-var MessageCreateAsset = "This topic will be created by bot %s"
-
-func toStr(v interface{}) string {
+func ToStr(v interface{}) string {
 	switch typedV := v.(type) {
 	case string:
 		return typedV

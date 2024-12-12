@@ -1,22 +1,23 @@
-package tgsupergroup
+package types
 
 import "strings"
 
+// Four Types: ParseModeNone, ParseModeHTML, ParseModeMarkdown, ParseModeMarkdownV2
+// Use zero if not need to use escape text
 type ParseMode uint8
 
 const (
-	ParseModeHTML ParseMode = iota + 1
+	ParseModeNone ParseMode = iota
+	ParseModeHTML
 	ParseModeMarkdown
 	ParseModeMarkdownV2
 )
 
-// EscapeText
 // Code from https://github.com/go-telegram-bot-api/telegram-bot-api/blob/master/bot.go (Line 729)
-// Special thanks
 func (m ParseMode) EscapeText(message string) string {
 	var replacer *strings.Replacer
 	switch m {
-	case 0:
+	case ParseModeNone:
 		return message
 	case ParseModeHTML:
 		replacer = strings.NewReplacer("<", "&lt;", ">", "&gt;", "&", "&amp;")
