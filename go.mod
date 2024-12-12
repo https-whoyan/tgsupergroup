@@ -1,4 +1,4 @@
-module github.com/http-whoyan/tgsupergroup
+module github.com/https-whoyan/tgsupergroup
 
 go 1.22
 
