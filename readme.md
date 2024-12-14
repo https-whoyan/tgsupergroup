@@ -23,7 +23,7 @@ A lightweight library for managing **topics** in Telegram supergroups. It provid
 Install the library using `go get`:
 
 ```bash
-go get github.com/https-whoyan/tgsupergroup@v1.0.0
+go get github.com/https-whoyan/tgsupergroup@v1.0.1
 ```
 
 ---
