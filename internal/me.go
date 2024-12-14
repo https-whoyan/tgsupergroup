@@ -1,4 +1,4 @@
-package requester
+package internal
 
 import (
 	"context"
@@ -25,7 +25,7 @@ func (r *requester) GetMe(ctx context.Context) (botName string, err error) {
 	}
 	err = r.checkBasicResponse(dst.basicResponse)
 	if err != nil {
-		if err.Error() == notFound {
+		if err.Error() == notFoundDescription {
 			return "", errors.ErrInvalidToken
 		}
 		return

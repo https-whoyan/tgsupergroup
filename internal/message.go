@@ -1,4 +1,4 @@
-package requester
+package internal
 
 import (
 	"context"
@@ -22,7 +22,7 @@ func (r *requester) sendMessageToChat(
 ) (*sendMessageResponse, error) {
 	req, err := r.newRequest(ctx, http.MethodGet, sendMessage, queryArgs{
 		chatIDJson:      toStr(chatID),
-		messageTextJson: r.escapeF(messageText, args),
+		messageTextJson: r.escapeF(messageText, args...),
 	})
 	if err != nil {
 		return nil, err
@@ -44,7 +44,7 @@ func (r *requester) sendMessageToTopic(
 ) (*sendMessageResponse, error) {
 	req, err := r.newRequest(ctx, http.MethodGet, sendMessage, queryArgs{
 		chatIDJson:      toStr(chatID),
-		messageTextJson: r.escapeF(messageText, args),
+		messageTextJson: r.escapeF(messageText, args...),
 		msgThreadIDJson: toStr(topicID),
 	})
 	if err != nil {

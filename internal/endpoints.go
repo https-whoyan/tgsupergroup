@@ -1,4 +1,4 @@
-package requester
+package internal
 
 import "time"
 

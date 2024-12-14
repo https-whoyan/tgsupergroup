@@ -14,12 +14,12 @@ type Storage interface {
 }
 
 type redisCacher struct {
-	client     redis.Client
+	client     *redis.Client
 	fieldAsset string
 }
 
 // Initiates Storage using the redis.Client
-func NewRedisStorage(client redis.Client) Storage {
+func NewRedisStorage(client *redis.Client) Storage {
 	return &redisCacher{
 		client:     client,
 		fieldAsset: RedisKeyAsset,
@@ -64,6 +64,8 @@ func (c redisCacher) Save(ctx context.Context, topic *Topic) error {
 	if err != nil {
 		return err
 	}
+	// If already have, safe smallest
+	id = min(id, topic.ThreadID)
 	return c.client.HSet(ctx, c.getKey(chatID), topic.Name, id).Err()
 }
 

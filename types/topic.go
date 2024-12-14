@@ -30,3 +30,7 @@ func (t *Topics) GetID(name TopicName) TopicThreadID {
 	}
 	return topic.ThreadID
 }
+
+func (t *Topics) Len() int {
+	return len(*t)
+}

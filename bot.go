@@ -2,7 +2,7 @@ package tgsupergroup
 
 import (
 	"context"
-	"github.com/https-whoyan/tgsupergroup/internal/requester"
+	"github.com/https-whoyan/tgsupergroup/internal"
 	"io"
 	"net/http"
 )
@@ -34,7 +34,7 @@ type Bot struct {
 
 	httpCli *http.Client
 
-	requester   requester.Requester
+	requester   internal.Requester
 	storage     Storage
 	chatCache   map[ChatID]*Chat
 	topicsCache map[ChatID]*Topics
@@ -107,7 +107,7 @@ func NewBot(token string, opts ...Option) (*Bot, error) {
 		opt(b)
 	}
 	var err error
-	b.requester = requester.NewRequester(token, b.httpCli, b.parseMode)
+	b.requester = internal.NewRequester(token, b.httpCli, b.parseMode)
 	_, pingErr := b.requester.GetMe(b.ctx)
 	if pingErr != nil {
 		return nil, pingErr

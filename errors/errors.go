@@ -7,4 +7,5 @@ var (
 	ErrChatIsNotSuperGroup = errors.New("chat is not supergroup")
 	ErrNotProvidedChatID   = errors.New("not provided chat ID")
 	ErrInvalidToken        = errors.New("invalid token")
+	ErrNotEnoughPrivileges = errors.New("not enough privileges")
 )

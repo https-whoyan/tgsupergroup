@@ -10,25 +10,27 @@ Use this method if you provided chatID in the options during initialization.
 
 Otherwise, use SendMessageToTopicByChatID method.
 */
-func (b *Bot) SendMessageToTopic(ctx context.Context, topicName TopicName, messageText string) error {
+func (b *Bot) SendMessageToTopic(
+	ctx context.Context, topicName TopicName, messageText string, args ...interface{},
+) error {
 	if b.chat == nil {
 		return errors.ErrNotProvidedChatID
 	}
 	if !b.chat.IsSuperGroup() {
 		return errors.ErrChatIsNotSuperGroup
 	}
-	return b.SendMessageToTopicByChatID(ctx, b.chat.ChatID, topicName, messageText)
+	return b.SendMessageToTopicByChatID(ctx, b.chat.ChatID, topicName, messageText, args...)
 }
 
 // Sends a message to a group's topic by its name.
 func (b *Bot) SendMessageToTopicByChatID(
-	ctx context.Context, chatID ChatID, topicName TopicName, messageText string,
+	ctx context.Context, chatID ChatID, topicName TopicName, messageText string, args ...interface{},
 ) error {
 	currChat, err := b.findChat(ctx, chatID)
 	if err != nil {
 		return err
 	}
-	if currChat.IsSuperGroup() {
+	if !currChat.IsSuperGroup() {
 		return errors.ErrChatIsNotSuperGroup
 	}
 	topicID, isContains, err := b.getTopic(ctx, chatID, topicName)
@@ -39,7 +41,7 @@ func (b *Bot) SendMessageToTopicByChatID(
 	defer func() { b.safeTopicToLocalCacheIfNeed(topic) }()
 	if isContains {
 		topic.ThreadID = topicID
-		return b.requester.SendMessageToTopic(ctx, chatID, topic.ThreadID, messageText)
+		return b.requester.SendMessageToTopic(ctx, chatID, topic.ThreadID, messageText, args...)
 	}
 	topicIDPtr, createTopicErr := b.requester.CreateTopic(ctx, topic)
 	if createTopicErr != nil {
