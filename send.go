@@ -55,10 +55,11 @@ func (b *Bot) SendMessageToTopicByChatID(
 			return err
 		}
 	}
-	return nil
+	return b.requester.SendMessageToTopic(ctx, chatID, topicID, messageText, args...)
 }
 
-func (b *Bot) SendMessageToChat(ctx context.Context, chatID ChatID, messageText string) error {
+// Just send message to chatID
+func (b *Bot) SendMessageToChat(ctx context.Context, chatID ChatID, messageText string, args ...interface{}) error {
 	botChat, err := b.findChat(ctx, chatID)
 	if err != nil {
 		return err
@@ -66,13 +67,28 @@ func (b *Bot) SendMessageToChat(ctx context.Context, chatID ChatID, messageText 
 	if botChat == nil {
 		return errors.ErrChatNotFound
 	}
-	err = b.requester.SendMessageToChat(ctx, chatID, messageText)
+	err = b.requester.SendMessageToChat(ctx, chatID, messageText, args...)
 	return err
 }
 
-func (b *Bot) SendMessage(ctx context.Context, messageText string) error {
+// Just send message to prepared chatID
+func (b *Bot) SendMessage(ctx context.Context, messageText string, args ...interface{}) error {
 	if b.chat == nil {
 		return errors.ErrNotProvidedChatID
 	}
-	return b.requester.SendMessageToChat(ctx, b.chat.ChatID, messageText)
+	return b.requester.SendMessageToChat(ctx, b.chat.ChatID, messageText, args...)
+}
+
+// May be useful if you have a threadID
+func (b *Bot) SendMessageToTopicByID(
+	ctx context.Context, chatID ChatID, topicID TopicThreadID, messageText string, args ...interface{},
+) error {
+	currChat, err := b.findChat(ctx, chatID)
+	if err != nil {
+		return err
+	}
+	if !currChat.IsSuperGroup() {
+		return errors.ErrChatIsNotSuperGroup
+	}
+	return b.requester.SendMessageToTopic(ctx, chatID, topicID, messageText, args...)
 }

@@ -14,14 +14,6 @@ func idFromBytes(bytes []byte) (TopicThreadID, error) {
 	return TopicThreadID(threadID), nil
 }
 
-func NewTopic(chatID ChatID, topicName TopicName, id TopicThreadID) *Topic {
-	return &Topic{
-		ChatID:   chatID,
-		ThreadID: id,
-		Name:     topicName,
-	}
-}
-
 func (b *Bot) safeTopicToLocalCacheIfNeed(topic *Topic) {
 	if b.topicsCache[topic.ChatID] != nil {
 		id := b.topicsCache[topic.ChatID].GetID(topic.Name)

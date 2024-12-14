@@ -19,6 +19,6 @@ const (
 )
 
 const (
-	maxRequestsBySecond = 30
-	requestTiming       = time.Second / (maxRequestsBySecond - 1)
+	maxRequestsBySecond = 10
+	requestTiming       = time.Second / maxRequestsBySecond
 )

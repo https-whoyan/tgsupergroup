@@ -11,6 +11,14 @@ type Topic struct {
 	Name     TopicName     `json:"name"`
 }
 
+func NewTopic(chatID ChatID, topicName TopicName, id TopicThreadID) *Topic {
+	return &Topic{
+		ChatID:   chatID,
+		ThreadID: id,
+		Name:     topicName,
+	}
+}
+
 type Topics map[TopicName]*Topic
 
 func (t *Topics) Safe(topic *Topic) {

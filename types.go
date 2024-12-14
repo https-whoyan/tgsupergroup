@@ -1,29 +1,30 @@
 package tgsupergroup
 
 import (
-	types2 "github.com/https-whoyan/tgsupergroup/types"
+	"github.com/https-whoyan/tgsupergroup/types"
 )
 
 type (
-	Chat   = types2.Chat
-	ChatID = types2.ChatID
+	Chat   = types.Chat
+	ChatID = types.ChatID
 
-	Topic         = types2.Topic
-	Topics        = types2.Topics
-	TopicThreadID = types2.TopicThreadID
-	TopicName     = types2.TopicName
+	Topic         = types.Topic
+	Topics        = types.Topics
+	TopicThreadID = types.TopicThreadID
+	TopicName     = types.TopicName
 
-	ParseMode = types2.ParseMode
+	ParseMode = types.ParseMode
 )
 
 const (
-	ParseModeHTML       = types2.ParseModeHTML
-	ParseModeMarkdown   = types2.ParseModeMarkdown
-	ParseModeMarkdownV2 = types2.ParseModeMarkdownV2
+	ParseModeHTML       = types.ParseModeHTML
+	ParseModeMarkdown   = types.ParseModeMarkdown
+	ParseModeMarkdownV2 = types.ParseModeMarkdownV2
 
-	SuperGroupType = types2.SuperGroupType
+	SuperGroupType = types.SuperGroupType
 )
 
 var (
-	EmptyThreadID = types2.EmptyTopicID
+	NewTopic      = types.NewTopic
+	EmptyThreadID = types.EmptyTopicID
 )
