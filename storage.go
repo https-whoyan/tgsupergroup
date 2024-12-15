@@ -14,12 +14,12 @@ type Storage interface {
 }
 
 type redisCacher struct {
-	client     *redis.Client
+	client     redis.UniversalClient
 	fieldAsset string
 }
 
 // Initiates Storage using the redis.Client
-func NewRedisStorage(client *redis.Client) Storage {
+func NewRedisStorage(client redis.UniversalClient) Storage {
 	return &redisCacher{
 		client:     client,
 		fieldAsset: RedisKeyAsset,
