@@ -3,7 +3,6 @@ package internal
 import (
 	"context"
 	"errors"
-	"github.com/joho/godotenv"
 	"net/http"
 	"os"
 	"strconv"
@@ -11,6 +10,8 @@ import (
 
 	myErrors "github.com/https-whoyan/tgsupergroup/errors"
 	"github.com/https-whoyan/tgsupergroup/types"
+
+	"github.com/joho/godotenv"
 )
 
 var ctx = context.Background()

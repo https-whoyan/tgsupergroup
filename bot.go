@@ -26,7 +26,6 @@ type Bot struct {
 	io.Closer
 	ctx      context.Context
 	basicURL string
-	token    string
 	chat     *Chat
 
 	spamCount uint
@@ -96,7 +95,6 @@ func WithParseMode(m ParseMode) Option {
 func NewBot(token string, opts ...Option) (*Bot, error) {
 	b := &Bot{
 		ctx:         context.Background(),
-		token:       token,
 		httpCli:     http.DefaultClient,
 		spamCount:   maxSpamThreadIDs,
 		parseMode:   ParseModeMarkdownV2,
@@ -106,16 +104,47 @@ func NewBot(token string, opts ...Option) (*Bot, error) {
 	for _, opt := range opts {
 		opt(b)
 	}
-	var err error
 	b.requester = internal.NewRequester(token, b.httpCli, b.parseMode)
+	optionsErr := b.initOptions()
+	if optionsErr != nil {
+		return nil, optionsErr
+	}
+	return b, nil
+}
+
+func NewBotsGroup(tokens []string, opts ...Option) (*Bot, error) {
+	b := &Bot{
+		ctx:         context.Background(),
+		spamCount:   maxSpamThreadIDs,
+		parseMode:   ParseModeMarkdownV2,
+		chatCache:   make(map[ChatID]*Chat),
+		topicsCache: make(map[int64]*Topics),
+	}
+	for _, opt := range opts {
+		opt(b)
+	}
+	req, err := internal.NewBotsGroup(b.ctx, b.parseMode, tokens...)
+	if err != nil {
+		return nil, err
+	}
+	b.requester = req
+	optionsErr := b.initOptions()
+	if optionsErr != nil {
+		return nil, optionsErr
+	}
+	return b, nil
+}
+
+func (b *Bot) initOptions() error {
+	var err error
 	_, pingErr := b.requester.GetMe(b.ctx)
 	if pingErr != nil {
-		return nil, pingErr
+		return pingErr
 	}
 	if b.chat != nil {
 		b.chat, err = b.requester.GetChat(b.ctx, b.chat.ChatID)
 		if err != nil {
-			return nil, err
+			return err
 		}
 		b.chatCache[b.chat.ChatID] = b.chat
 	}
@@ -123,14 +152,13 @@ func NewBot(token string, opts ...Option) (*Bot, error) {
 		var allTopics *Topics
 		allTopics, err = b.storage.GetAll(b.ctx, b.chat.ChatID)
 		if err != nil {
-			return nil, err
+			return err
 		}
 		b.topicsCache[b.chat.ChatID] = allTopics
 	}
-	return b, nil
+	return nil
 }
 
 func (b *Bot) Close() error {
-	b.httpCli.CloseIdleConnections()
-	return nil
+	return b.requester.Close()
 }

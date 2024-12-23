@@ -68,3 +68,8 @@ func (r *requester) send(req *http.Request, dst interface{}) error {
 	}
 	return json.NewDecoder(resp.Body).Decode(dst)
 }
+
+func (r *requester) Close() error {
+	r.httpClient.CloseIdleConnections()
+	return nil
+}

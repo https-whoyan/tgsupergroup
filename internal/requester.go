@@ -2,11 +2,13 @@ package internal
 
 import (
 	"context"
+	"io"
 	"net/http"
 	"sync"
 )
 
 type Requester interface {
+	io.Closer
 	GetMe(ctx context.Context) (botName string, err error)
 	GetChat(ctx context.Context, chatID ChatID) (*Chat, error)
 	SendMessageToChat(ctx context.Context, chatID ChatID, messageText string, args ...interface{}) error
